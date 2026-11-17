@@ -1,6 +1,7 @@
 package com.finpilot.common.config;
 
 import com.zaxxer.hikari.HikariDataSource;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.context.annotation.Bean;
@@ -16,6 +17,7 @@ import java.nio.charset.StandardCharsets;
  * Parses Render / Heroku style {@code DATABASE_URL} (postgres://…).
  */
 @Configuration
+@ConditionalOnClass(name = "org.postgresql.Driver")
 @ConditionalOnExpression("!'${DATABASE_URL:}'.isEmpty()")
 public class RenderDataSourceConfiguration {
 

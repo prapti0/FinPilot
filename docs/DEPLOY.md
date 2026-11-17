@@ -90,7 +90,9 @@ Login calls `https://render-host/api/v1/...` with CORS from gateway.
 
 | Symptom | Likely cause | Fix |
 |--------|----------------|-----|
-| `No open ports detected` | Normal for **~60s after** `Starting API gateway...`; Render keeps scanning | Wait **2–3 min** for `Gateway is UP` or gateway log tail; push latest `start-render.sh` (parallel gateway start) |
+| `No open ports detected` | Normal for **~60s after** `Starting API gateway...`; Render keeps scanning | Wait **2–3 min** for `Gateway is UP` or gateway log tail |
+| `postgresql.Driver` on **api-gateway** | `RenderDataSourceConfiguration` without JDBC driver | Fixed: config only loads when driver is on classpath |
+| `Tomcat started on port 10000` on **user-service** | `SERVER_PORT` / `PORT` applied to every JVM | Fixed: only gateway uses Render `$PORT`; others use 8081–8087 |
 | `Gateway failed to start` in logs | Bad `DATABASE_URL` or JWT | Full **Internal** Postgres URL; regenerate JWT if leaked |
 | Login works, orders 502 | Backend JVMs still booting | Wait 2–3 min after deploy |
 | Browser CORS error | `FINPILOT_CORS_ORIGINS` wrong | Exact Vercel URL, comma-separated, then **Redeploy** |

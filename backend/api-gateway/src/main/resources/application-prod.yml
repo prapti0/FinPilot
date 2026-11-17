@@ -1,10 +1,16 @@
+# Bind port is set on Render via start-render.sh (-Dserver.port=$PORT). Do not use $PORT here:
+# Render injects PORT into the container and would break other JVMs if they resolved it.
 server:
-  port: ${PORT:8080}
+  port: 8080
   address: 0.0.0.0
 
 spring:
   main:
     lazy-initialization: ${FINPILOT_GATEWAY_LAZY_INIT:true}
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.actuate.autoconfigure.metrics.jdbc.DataSourcePoolMetricsAutoConfiguration
 
 management:
   tracing:
