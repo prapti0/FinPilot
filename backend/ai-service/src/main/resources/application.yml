@@ -1,0 +1,31 @@
+server:
+  port: 8087
+
+spring:
+  application:
+    name: ai-service
+  datasource:
+    url: jdbc:postgresql://127.0.0.1:5433/finpilot
+    username: finpilot
+    password: finpilot
+  jpa:
+    hibernate:
+      ddl-auto: none
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    open-in-view: false
+  kafka:
+    bootstrap-servers: localhost:9092
+
+finpilot:
+  gemini:
+    api-key: ${GEMINI_API_KEY:}
+    model: gemini-2.0-flash
+  services:
+    portfolio: http://localhost:8082
+    risk: http://localhost:8086
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus

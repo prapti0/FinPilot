@@ -1,0 +1,31 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: order-service
+  datasource:
+    url: jdbc:postgresql://127.0.0.1:5433/finpilot
+    username: finpilot
+    password: finpilot
+  jpa:
+    hibernate:
+      ddl-auto: none
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    open-in-view: false
+    properties:
+      hibernate.jdbc.time_zone: UTC
+  kafka:
+    bootstrap-servers: localhost:9092
+
+finpilot:
+  services:
+    transaction: http://localhost:8084
+    risk: http://localhost:8086
+    market: http://localhost:8085
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus

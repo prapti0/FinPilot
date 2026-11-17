@@ -1,0 +1,17 @@
+server:
+  port: 8081
+spring:
+  application:
+    name: user-service
+  datasource:
+    url: jdbc:postgresql://127.0.0.1:5433/finpilot
+    username: finpilot
+    password: finpilot
+  jpa:
+    hibernate:
+      ddl-auto: none
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+management.endpoints.web.exposure.include: health,info,prometheus
+
+finpilot:
+  jwt-secret: ${JWT_SECRET:finpilot-dev-secret-change-in-production-32chars}

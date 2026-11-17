@@ -1,0 +1,30 @@
+# Build
+target/
+dist/
+build/
+*.class
+*.jar
+!**/gradle-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+
+# Node
+node_modules/
+.npm
+*.log
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker volumes
+infrastructure/docker/data/
