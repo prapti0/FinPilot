@@ -14,7 +14,8 @@ export FINPILOT_RENDER_START_AI="${FINPILOT_RENDER_START_AI:-false}"
 LISTEN_PORT="${PORT:-8080}"
 export SERVER_PORT="${LISTEN_PORT}"
 
-JAVA_SMALL=(java -XX:+UseContainerSupport -Xms16m -Xmx48m -XX:MaxMetaspaceSize=48m -XX:+ExitOnOutOfMemoryError)
+JAVA_USER=(java -XX:+UseContainerSupport -Xms48m -Xmx140m -XX:MaxMetaspaceSize=80m -XX:+ExitOnOutOfMemoryError)
+JAVA_SMALL=(java -XX:+UseContainerSupport -Xms16m -Xmx44m -XX:MaxMetaspaceSize=48m -XX:+ExitOnOutOfMemoryError)
 JAVA_GATEWAY=(java -XX:+UseContainerSupport -Xms40m -Xmx128m -XX:MaxMetaspaceSize=80m -XX:+ExitOnOutOfMemoryError)
 GATEWAY_LOG="/tmp/api-gateway-0.1.0-SNAPSHOT.log"
 
@@ -24,11 +25,19 @@ start_background() {
 }
 
 wait_for_gateway() {
-  echo "Waiting for gateway on port ${LISTEN_PORT} (Spring may take 30-90s)..."
-  for _ in $(seq 1 90); do
-    if wget -q -O- "http://127.0.0.1:${LISTEN_PORT}/actuator/health" 2>/dev/null | grep -q '"status":"UP"'; then
+  echo "Waiting for gateway on port ${LISTEN_PORT} (Spring may take 30-120s on free tier — Render 'no open ports' before ~60s is normal)..."
+  local attempt=0
+  while [ "${attempt}" -lt 90 ]; do
+    attempt=$((attempt + 1))
+    if wget -q -O- "http://127.0.0.1:${LISTEN_PORT}/actuator/health" 2>/dev/null | grep -qE '"status"\s*:\s*"UP"'; then
       echo "Gateway is UP on port ${LISTEN_PORT}"
       return 0
+    fi
+    if [ $((attempt % 15)) -eq 0 ]; then
+      echo "Still waiting for gateway... attempt ${attempt}/90"
+      if command -v ss >/dev/null 2>&1; then
+        ss -tln 2>/dev/null | grep ":${LISTEN_PORT} " || true
+      fi
     fi
     sleep 2
   done
@@ -37,8 +46,11 @@ wait_for_gateway() {
   return 1
 }
 
-# 1) DB + auth first (Flyway runs here)
-start_background "${JAR_DIR}/user-service.jar"
+# 1) DB + auth first (Flyway runs here — needs more heap than other services)
+echo "Container memory (MiB):"
+free -m 2>/dev/null || true
+"${JAVA_USER[@]}" -jar "${JAR_DIR}/user-service.jar" >> "/tmp/user-service.log" 2>&1 &
+echo "Started user-service.jar pid=$!"
 echo "Waiting for user-service (Flyway + DB)..."
 sleep 45
 
@@ -55,7 +67,7 @@ fi
 # 3) Remaining services (ai optional — extra JVM on small instances)
 for jar in portfolio-service transaction-service market-data-service risk-service order-service; do
   start_background "${JAR_DIR}/${jar}-0.1.0-SNAPSHOT.jar"
-  sleep 2
+  sleep 4
 done
 
 if [ "${FINPILOT_RENDER_START_AI}" = "true" ]; then

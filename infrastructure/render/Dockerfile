@@ -6,7 +6,7 @@ RUN cd backend && mvn -B -DskipTests package
 
 FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
-RUN apt-get update && apt-get install -y --no-install-recommends wget && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends wget iproute2 procps && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /app/backend/user-service/target/user-service-0.1.0-SNAPSHOT.jar /app/backend/jars/user-service.jar
 COPY --from=build /app/backend/portfolio-service/target/portfolio-service-0.1.0-SNAPSHOT.jar /app/backend/jars/
