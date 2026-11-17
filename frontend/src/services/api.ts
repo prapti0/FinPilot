@@ -17,7 +17,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (!res.ok) {
     if (res.status === 502 || res.status === 503 || res.status === 504) {
-      throw new Error('Backend offline — run: bash FinPilot/scripts/start-local.sh');
+      throw new Error(
+        apiRoot
+          ? 'Backend offline — Render may be waking up; wait 1–2 minutes and retry.'
+          : 'Backend offline — run: bash FinPilot/scripts/start-local.sh',
+      );
     }
     if (!text.trim()) {
       throw new Error(`Request failed (${res.status} ${res.statusText}). Is gateway on :8080?`);

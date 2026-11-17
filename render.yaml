@@ -16,6 +16,8 @@ services:
         value: simple
       - key: FINPILOT_RENDER_START_AI
         value: "false"
+      - key: FINPILOT_RENDER_START_ALL
+        value: "false"
       - key: JWT_SECRET
         generateValue: true
       - key: FINPILOT_CORS_ORIGINS
