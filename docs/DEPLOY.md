@@ -1,0 +1,95 @@
+# Deploy FinPilot — Render + Vercel
+
+## Architecture (production)
+
+| Layer | Platform |
+|-------|----------|
+| React UI | **Vercel** |
+| API Gateway + 7 JVM services (one container) | **Render** Docker Web Service |
+| PostgreSQL | **Render** managed database |
+| Events | **Sync HTTP** (`FINPILOT_EVENTS_KAFKA_ENABLED=false`) — no Kafka on PaaS |
+| Cache | **In-memory** (`FINPILOT_CACHE_MODE=simple`) — optional Upstash Redis later |
+
+Financial rules unchanged: ledger in PostgreSQL, AI read-only, idempotent orders.
+
+### Finance & data integrity (production)
+
+| Concern | How FinPilot handles it |
+|---------|-------------------------|
+| **Ledger** | `transaction-service` — reserve → settle / release; balances in `accounts` with optimistic `version` |
+| **Idempotency** | `Idempotency-Key` on orders; duplicate keys return the same order |
+| **Double execution** | Sync mode: HTTP `buy-execution` only after successful settle (same TX boundary + compensation on failure) |
+| **Events** | Local: Kafka + outbox; Render: `finpilot.events.kafka-enabled=false` (outbox publishers disabled) |
+| **Cache** | Quotes / portfolio summary: in-memory per instance (`finpilot.cache.mode=simple`); safe for read paths |
+| **DB** | Single Render Postgres + Flyway `V1` schema; no `pgvector` required (RAG uses text search) |
+| **Secrets** | `JWT_SECRET` generated on Render; never commit `GEMINI_API_KEY` |
+
+---
+
+## 1. Render (backend + database)
+
+### Option A — Blueprint
+
+1. Push repo to GitHub.
+2. Render Dashboard → **New** → **Blueprint** → connect repo.
+3. Confirm `render.yaml` creates `finpilot-db` + `finpilot-api`.
+4. Set env **`FINPILOT_CORS_ORIGINS`** to your Vercel URL, e.g.  
+   `https://finpilot.vercel.app,https://finpilot-git-main-you.vercel.app`
+5. Optional: `GEMINI_API_KEY` for live AI (else mock narratives).
+
+### Option B — Manual Docker
+
+- **New Web Service** → Docker → Dockerfile path: `infrastructure/render/Dockerfile`
+- Attach PostgreSQL; map `DATABASE_URL` automatically.
+- Health check path: `/actuator/health` on port **8080**.
+
+### First deploy
+
+- Flyway on **user-service** runs `V1__schema.sql` + seed knowledge on startup.
+- Demo user: `demo@finpilot.com` / `demo1234` (created if missing).
+
+---
+
+## 2. Vercel (frontend)
+
+1. Import GitHub repo, root directory: **`frontend`**.
+2. Framework: **Vite** (auto).
+3. Environment variable (Production):
+
+   `VITE_API_BASE_URL=https://<your-render-service>.onrender.com`
+
+   No trailing slash.
+
+4. Deploy.
+
+Login calls `https://render-host/api/v1/...` with CORS from gateway.
+
+---
+
+## 3. Local vs production
+
+| Setting | Local (`start-local.sh`) | Render |
+|---------|--------------------------|--------|
+| DB | Docker Postgres `:5433` | `DATABASE_URL` SSL |
+| Kafka | On | Off (sync portfolio update) |
+| Redis | On | Simple in-memory cache |
+| API URL (UI) | Vite proxy `/api` | `VITE_API_BASE_URL` |
+
+---
+
+## 4. Optional upgrades
+
+- **Upstash Redis**: set `REDIS_URL`, `FINPILOT_CACHE_MODE=redis`, enable Redis auto-config in prod profile.
+- **Kafka**: run Confluent Cloud, set `FINPILOT_EVENTS_KAFKA_ENABLED=true` + `SPRING_KAFKA_BOOTSTRAP_SERVERS`.
+- **Split microservices**: deploy each JAR as separate Render service (same env pattern).
+
+---
+
+## 5. Smoke test after deploy
+
+```bash
+curl https://YOUR-API.onrender.com/actuator/health
+curl -X POST https://YOUR-API.onrender.com/api/v1/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"demo@finpilot.com","password":"demo1234"}'
+```

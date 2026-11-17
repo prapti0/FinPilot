@@ -1,0 +1,5 @@
+com.finpilot.common.config.FinPilotCommonAutoConfiguration
+com.finpilot.common.config.CorrelationIdAutoConfiguration
+com.finpilot.common.config.RenderDataSourceConfiguration
+com.finpilot.common.config.SimpleCacheConfiguration
+com.finpilot.common.kafka.KafkaDlqAutoConfiguration

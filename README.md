@@ -1,68 +1,84 @@
-# FinPilot — AI-Powered Wealth & Trading Engineering Platform
+# FinPilot
 
-**Simulated trading only** — production-style microservices with deterministic financial core, Kafka events, Redis cache, Gemini-ready AI, and engineering agent.
+**Simulated wealth & trading platform** — Spring Boot microservices, PostgreSQL ledger, Kafka events, Redis caching, React dashboard, and optional Gemini-powered insights. Paper trading only; no real-money execution.
 
-## Feature map (6-week roadmap — implemented)
+## Highlights
 
-| Week | Delivered in repo |
-|------|-------------------|
-| 1 | JWT auth, user/cash accounts, portfolio APIs, React dashboard |
-| 2 | Buy simulation, double-entry ledger, reserves, idempotency, pessimistic cash lock |
-| 3 | Kafka topics, transactional outbox, Redis quotes/cache, saga release on failure |
-| 4 | AI portfolio Q&A, RAG (`knowledge_chunks`), risk explanations, `ai_reports` |
-| 5 | Engineering agent PR review API (sandboxed, no auto-merge) |
-| 6 | Docker Compose (PG, Redis, Kafka, Prometheus, Grafana), Jenkinsfile, actuator/prometheus |
+- **Microservices** behind an API gateway (auth, portfolio, orders, ledger, market data, risk, AI)
+- **Financial core** — reserve / settle / release cash, double-entry ledger lines, pessimistic locking on balances, idempotent orders (`Idempotency-Key`)
+- **Event-driven path (local)** — transactional outbox → Kafka → portfolio updates; **DLQ** topics (`*.dlq`) after retries
+- **Reliability** — gateway rate limiting, correlation IDs, circuit breaker on ledger calls, scheduled ledger reconciliation job
+- **Production deploy** — Render (API + Postgres) and Vercel (UI); Flyway migrations; sync HTTP + in-memory cache where Kafka/Redis are not available
+- **Observability** — Spring Actuator, Prometheus, Grafana, Jaeger traces (gateway OTLP), k6 smoke script in `scripts/load/`
+- **Engineering docs** — ADRs under `docs/adr/`, Kubernetes reference in `infrastructure/k8s/`
+
+## Tech stack
+
+| Layer | Technologies |
+| ----- | ------------ |
+| Backend | Java 21, Spring Boot 3, Spring Cloud Gateway, JPA/JDBC, WebClient |
+| Data | PostgreSQL, Flyway, Redis |
+| Messaging | Apache Kafka |
+| Frontend | React, TypeScript, Vite |
+| AI | Gemini API (optional), knowledge-base retrieval |
+| Ops | Docker Compose, Jenkinsfile, Render, Vercel |
 
 ## Quick start
 
+**Prerequisites:** Docker Desktop, Java 21, Maven, Node 18+
+
 ```bash
-# 1) Docker Desktop ON
-cd /Users/praptiwamre/Desktop/FinPilot/infrastructure/docker
-docker compose up -d
-
-# 2) Backend + ordered boot (user first)
-/Users/praptiwamre/Desktop/FinPilot/scripts/start-local.sh
-
-# 3) Frontend (separate terminal)
-cd /Users/praptiwamre/Desktop/FinPilot/frontend
-npm install && npm run dev
+cd infrastructure/docker && docker compose up -d
+bash scripts/start-local.sh
+cd frontend && npm install && npm run dev
 ```
 
-### URLs
-
-| Service | URL |
-|---------|-----|
+| | |
+| --- | --- |
 | App | http://localhost:5173 |
-| API Gateway | http://localhost:8080 |
-| Grafana | http://localhost:3001 (`admin` / `admin`) |
-| Prometheus | http://localhost:9090 |
+| API | http://localhost:8080 |
+| Demo login | `demo@finpilot.com` / `demo1234` (₹50,000 simulated cash) |
+| Postgres (host) | port **5433** |
 
-### Demo login
+Backend logs: `/tmp/finpilot-*.log` if a service fails to start.
 
-- **Email:** `demo@finpilot.com`
-- **Password:** `demo1234`
-- Starting cash: **₹50,000** (simulated)
+## Services
 
-Postgres on host **5433** (avoids local PostgreSQL on 5432).
+| Service | Responsibility |
+| ------- | ---------------- |
+| api-gateway | Routing, JWT validation, CORS |
+| user-service | Authentication, users, account profiles |
+| portfolio-service | Portfolios, holdings, performance |
+| order-service | Order orchestration, idempotency |
+| transaction-service | Ledger and balance updates |
+| market-data-service | Simulated quotes (cached) |
+| risk-service | Pre-trade checks |
+| ai-service | Portfolio Q&A and analysis (read-only vs ledger) |
 
-## Architecture boundary
+Ledger and balance changes go through **order-service** and **transaction-service** only. AI explains data; it does not post transactions.
 
-PostgreSQL ledger + account balances are updated only by **transaction-service** and **order** workflow. **AI** reads and explains; it never posts ledger entries.
-
-## Project layout
+## Repository layout
 
 ```
 FinPilot/
-  backend/          # 8 Spring Boot services + finpilot-common
-  frontend/         # React + TypeScript
-  infrastructure/   # docker, jenkins
-  monitoring/       # prometheus.yml
-  docs/             # schema, API, events
+  backend/          Spring Boot services + finpilot-common
+  frontend/         React application
+  infrastructure/   Docker, Render image
+  monitoring/       Prometheus configuration
+  docs/             API reference, schema, deployment guide
 ```
 
-## Build & test
+## Build
 
 ```bash
 cd backend && mvn verify
 cd frontend && npm run build
 ```
+
+## Deployment
+
+Step-by-step setup: [docs/DEPLOY.md](docs/DEPLOY.md). API on **Render** (`render.yaml`), frontend on **Vercel** with `VITE_API_BASE_URL` set to the Render service URL.
+
+## Disclaimer
+
+Simulated trading for demonstration and engineering showcase only. Not a licensed brokerage or investment product.

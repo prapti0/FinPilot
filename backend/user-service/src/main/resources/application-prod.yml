@@ -1,0 +1,13 @@
+spring:
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
+
+finpilot:
+  events:
+    kafka-enabled: false
+  cache:
+    mode: simple

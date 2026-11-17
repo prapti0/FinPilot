@@ -40,9 +40,17 @@ spring:
 
 finpilot:
   jwt-secret: ${JWT_SECRET:finpilot-dev-secret-change-in-production-32chars}
+  rate-limit:
+    requests-per-minute: ${FINPILOT_RATE_LIMIT:120}
 
 management:
   endpoints:
     web:
       exposure:
         include: health,info,prometheus
+  tracing:
+    sampling:
+      probability: ${FINPILOT_TRACE_SAMPLE:0.2}
+  otlp:
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318/v1/traces}

@@ -5,12 +5,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.finpilot.portfolio.service.PortfolioService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 
 @Component
+@ConditionalOnProperty(name = "finpilot.events.kafka-enabled", havingValue = "true", matchIfMissing = true)
 public class OrderExecutedListener {
     private static final Logger log = LoggerFactory.getLogger(OrderExecutedListener.class);
     private final ObjectMapper objectMapper;
@@ -40,6 +42,7 @@ public class OrderExecutedListener {
             portfolioService.applyBuyExecution(portfolioId, assetId, qty, price);
         } catch (Exception ex) {
             log.warn("Failed to process order-executed event: {}", ex.getMessage());
+            throw new IllegalStateException("order-executed processing failed", ex);
         }
     }
 }

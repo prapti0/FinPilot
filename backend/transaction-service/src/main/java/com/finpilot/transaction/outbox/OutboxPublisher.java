@@ -17,6 +17,10 @@ import java.util.Map;
 
 @Component
 @EnableScheduling
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
+        name = "finpilot.events.kafka-enabled",
+        havingValue = "true",
+        matchIfMissing = true)
 public class OutboxPublisher {
     private static final Logger log = LoggerFactory.getLogger(OutboxPublisher.class);
     private final OutboxEventRepository outboxEventRepository;

@@ -1,0 +1,6 @@
+server:
+  port: ${PORT:8080}
+
+finpilot:
+  cors:
+    allowed-origins: ${FINPILOT_CORS_ORIGINS:http://localhost:5173}

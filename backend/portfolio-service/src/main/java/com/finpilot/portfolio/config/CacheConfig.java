@@ -16,6 +16,10 @@ import java.time.Duration;
 
 @Configuration
 @EnableCaching
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
+        name = "finpilot.cache.mode",
+        havingValue = "redis",
+        matchIfMissing = true)
 public class CacheConfig {
 
     @Bean

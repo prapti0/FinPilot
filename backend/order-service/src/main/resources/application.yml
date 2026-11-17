@@ -19,10 +19,13 @@ spring:
     bootstrap-servers: localhost:9092
 
 finpilot:
+  events:
+    kafka-enabled: true
   services:
-    transaction: http://localhost:8084
-    risk: http://localhost:8086
-    market: http://localhost:8085
+    transaction: http://127.0.0.1:8084
+    risk: http://127.0.0.1:8086
+    market: http://127.0.0.1:8085
+    portfolio: http://127.0.0.1:8082
 
 management:
   endpoints:

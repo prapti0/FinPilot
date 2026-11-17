@@ -2,7 +2,9 @@ package com.finpilot.order.service;
 
 import com.finpilot.common.events.OrderCreatedPayload;
 import com.finpilot.common.events.OrderExecutedPayload;
+import com.finpilot.common.config.EventTransportProperties;
 import com.finpilot.order.client.MarketDataClient;
+import com.finpilot.order.client.PortfolioClient;
 import com.finpilot.order.client.RiskClient;
 import com.finpilot.order.client.TransactionClient;
 import com.finpilot.order.domain.OrderEntity;
@@ -33,6 +35,8 @@ public class OrderService {
     private final MarketDataClient marketDataClient;
     private final RiskClient riskClient;
     private final TransactionClient transactionClient;
+    private final PortfolioClient portfolioClient;
+    private final EventTransportProperties eventTransportProperties;
 
     public OrderService(
             OrderRepository orderRepository,
@@ -41,7 +45,9 @@ public class OrderService {
             AssetLookup assetLookup,
             MarketDataClient marketDataClient,
             RiskClient riskClient,
-            TransactionClient transactionClient) {
+            TransactionClient transactionClient,
+            PortfolioClient portfolioClient,
+            EventTransportProperties eventTransportProperties) {
         this.orderRepository = orderRepository;
         this.orderPersistHelper = orderPersistHelper;
         this.outboxEventRepository = outboxEventRepository;
@@ -49,6 +55,8 @@ public class OrderService {
         this.marketDataClient = marketDataClient;
         this.riskClient = riskClient;
         this.transactionClient = transactionClient;
+        this.portfolioClient = portfolioClient;
+        this.eventTransportProperties = eventTransportProperties;
     }
 
     @Transactional
@@ -124,8 +132,13 @@ public class OrderService {
                         userId, order.getId(), idempotencyKey + "-settle", settleAmount));
             }
 
-            enqueueOrderCreated(order, asset.symbol(), orderValue, idempotencyKey);
-            enqueueOrderExecuted(order, asset.symbol(), executionPrice);
+            if (eventTransportProperties.kafkaEnabled()) {
+                enqueueOrderCreated(order, asset.symbol(), orderValue, idempotencyKey);
+                enqueueOrderExecuted(order, asset.symbol(), executionPrice);
+            } else if ("BUY".equals(side)) {
+                portfolioClient.applyBuyExecution(
+                        order.getPortfolioId(), order.getAssetId(), order.getQuantity(), executionPrice);
+            }
             return OrderResponse.from(order);
         } catch (RuntimeException ex) {
             if (reserved) {

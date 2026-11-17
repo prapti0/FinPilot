@@ -1,0 +1,19 @@
+# Copy into each service src/main/resources/application-prod.yml (shared pattern)
+spring:
+  config:
+    activate:
+      on-profile: prod
+  jpa:
+    hibernate:
+      ddl-auto: none
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
+
+finpilot:
+  events:
+    kafka-enabled: false
+  cache:
+    mode: simple
+  cors:
+    allowed-origins: ${FINPILOT_CORS_ORIGINS:https://finpilot.vercel.app}

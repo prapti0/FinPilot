@@ -1,4 +1,5 @@
-const API = '/api/v1';
+const apiRoot = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '');
+const API = apiRoot ? `${apiRoot}/api/v1` : '/api/v1';
 
 function authHeaders(): HeadersInit {
   const token = localStorage.getItem('finpilot_token');

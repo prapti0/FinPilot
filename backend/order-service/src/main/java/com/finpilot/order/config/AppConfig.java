@@ -1,20 +1,14 @@
 package com.finpilot.order.config;
 
+import com.finpilot.common.config.EventTransportProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.reactive.function.client.WebClient;
-
 @Configuration
-@EnableConfigurationProperties(AppProperties.class)
+@EnableConfigurationProperties({AppProperties.class, EventTransportProperties.class})
 public class AppConfig {
-
-    @Bean
-    WebClient.Builder webClientBuilder() {
-        return WebClient.builder();
-    }
 
     @Bean
     ObjectMapper objectMapper() {

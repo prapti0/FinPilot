@@ -11,6 +11,10 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 
 @Component
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
+        name = "finpilot.events.kafka-enabled",
+        havingValue = "true",
+        matchIfMissing = true)
 public class OrderCreatedListener {
     private static final Logger log = LoggerFactory.getLogger(OrderCreatedListener.class);
     private final ObjectMapper objectMapper;
