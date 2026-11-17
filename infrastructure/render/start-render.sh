@@ -16,7 +16,7 @@ export SERVER_PORT="${LISTEN_PORT}"
 
 JAVA_USER=(java -XX:+UseContainerSupport -Xms48m -Xmx140m -XX:MaxMetaspaceSize=80m -XX:+ExitOnOutOfMemoryError)
 JAVA_SMALL=(java -XX:+UseContainerSupport -Xms16m -Xmx44m -XX:MaxMetaspaceSize=48m -XX:+ExitOnOutOfMemoryError)
-JAVA_GATEWAY=(java -XX:+UseContainerSupport -Xms40m -Xmx128m -XX:MaxMetaspaceSize=80m -XX:+ExitOnOutOfMemoryError)
+JAVA_GATEWAY=(java -XX:+UseContainerSupport -Xms48m -Xmx160m -XX:MaxMetaspaceSize=96m -XX:+ExitOnOutOfMemoryError)
 GATEWAY_LOG="/tmp/api-gateway-0.1.0-SNAPSHOT.log"
 
 start_background() {
@@ -46,21 +46,24 @@ wait_for_gateway() {
   return 1
 }
 
-# 1) DB + auth first (Flyway runs here — needs more heap than other services)
+# 1) user-service (Flyway) + gateway in parallel — Render scans $PORT from deploy start; don't block gateway 45s
 echo "Container memory (MiB):"
 free -m 2>/dev/null || true
 "${JAVA_USER[@]}" -jar "${JAR_DIR}/user-service.jar" >> "/tmp/user-service.log" 2>&1 &
-echo "Started user-service.jar pid=$!"
-echo "Waiting for user-service (Flyway + DB)..."
-sleep 45
+echo "Started user-service.jar pid=$! (Flyway may still be running)"
 
-# 2) Open public port before starting other JVMs (saves RAM headroom for Render health check)
-echo "Starting API gateway on port ${LISTEN_PORT}..."
-"${JAVA_GATEWAY[@]}" -Dserver.port="${LISTEN_PORT}" -jar "${JAR_DIR}/api-gateway-0.1.0-SNAPSHOT.jar" >> "${GATEWAY_LOG}" 2>&1 &
+echo "Starting API gateway on port ${LISTEN_PORT} (bind 0.0.0.0)..."
+"${JAVA_GATEWAY[@]}" \
+  -Dserver.port="${LISTEN_PORT}" \
+  -Dserver.address=0.0.0.0 \
+  -Dspring.main.lazy-initialization=true \
+  -jar "${JAR_DIR}/api-gateway-0.1.0-SNAPSHOT.jar" >> "${GATEWAY_LOG}" 2>&1 &
 GATEWAY_PID=$!
 
 if ! wait_for_gateway; then
-  echo "Gateway failed to start — see log above. Check DATABASE_URL and JWT_SECRET on Render."
+  echo "===== user-service log (tail) ====="
+  tail -n 40 "/tmp/user-service.log" 2>/dev/null || true
+  echo "Gateway failed to start — see logs above. Check DATABASE_URL and JWT_SECRET on Render."
   exit 1
 fi
 
