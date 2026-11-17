@@ -1,7 +1,7 @@
 package com.finpilot.common.config;
 
 import com.zaxxer.hikari.HikariDataSource;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,7 +16,7 @@ import java.nio.charset.StandardCharsets;
  * Parses Render / Heroku style {@code DATABASE_URL} (postgres://…).
  */
 @Configuration
-@ConditionalOnProperty(name = "DATABASE_URL")
+@ConditionalOnExpression("!'${DATABASE_URL:}'.isEmpty()")
 public class RenderDataSourceConfiguration {
 
     @Bean
@@ -42,8 +42,8 @@ public class RenderDataSourceConfiguration {
                 .username(username)
                 .password(password)
                 .build();
-        ds.setMaximumPoolSize(10);
-        ds.setMinimumIdle(2);
+        ds.setMaximumPoolSize(4);
+        ds.setMinimumIdle(1);
         ds.setConnectionTimeout(30_000);
         return ds;
     }

@@ -14,6 +14,8 @@ services:
         value: "false"
       - key: FINPILOT_CACHE_MODE
         value: simple
+      - key: FINPILOT_RENDER_START_AI
+        value: "false"
       - key: JWT_SECRET
         generateValue: true
       - key: FINPILOT_CORS_ORIGINS

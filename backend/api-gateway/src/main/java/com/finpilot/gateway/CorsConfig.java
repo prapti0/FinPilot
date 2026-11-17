@@ -16,10 +16,20 @@ public class CorsConfig {
     @Bean
     CorsWebFilter corsWebFilter(@Value("${finpilot.cors.allowed-origins:http://localhost:5173}") String origins) {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(Arrays.stream(origins.split(",")).map(String::trim).filter(s -> !s.isEmpty()).toList());
+        List<String> allowed = Arrays.stream(origins.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .toList();
+        boolean wildcard = allowed.size() == 1 && "*".equals(allowed.getFirst());
+        if (wildcard) {
+            config.addAllowedOriginPattern("*");
+            config.setAllowCredentials(false);
+        } else {
+            config.setAllowedOrigins(allowed);
+            config.setAllowCredentials(true);
+        }
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
-        config.setAllowCredentials(true);
         config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

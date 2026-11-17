@@ -85,7 +85,22 @@ Login calls `https://render-host/api/v1/...` with CORS from gateway.
 
 ---
 
-## 5. Smoke test after deploy
+## 5. Render troubleshooting
+
+| Symptom | Likely cause | Fix |
+|--------|----------------|-----|
+| `No open ports detected` | Gateway still starting or OOM on 512MB | Push latest `start-render.sh`; set health grace **180s**; optional plan upgrade |
+| `Gateway failed to start` in logs | Bad `DATABASE_URL` or JWT | Full **Internal** Postgres URL; regenerate JWT if leaked |
+| Login works, orders 502 | Backend JVMs still booting | Wait 2–3 min after deploy |
+| Browser CORS error | `FINPILOT_CORS_ORIGINS` wrong | Exact Vercel URL, comma-separated, then **Redeploy** |
+| `*` CORS + auth fails | Wildcard blocks credentials | Use real origins, not `*` |
+| AI page empty | `FINPILOT_RENDER_START_AI=false` | Set `true` only if RAM allows (extra JVM) |
+
+**Env checklist:** `DATABASE_URL`, `SPRING_PROFILES_ACTIVE=prod`, `JWT_SECRET`, `FINPILOT_CORS_ORIGINS`, `FINPILOT_EVENTS_KAFKA_ENABLED=false`, `FINPILOT_CACHE_MODE=simple`.
+
+---
+
+## 6. Smoke test after deploy
 
 ```bash
 curl https://YOUR-API.onrender.com/actuator/health
