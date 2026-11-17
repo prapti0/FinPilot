@@ -8,29 +8,25 @@ export FINPILOT_CACHE_MODE="${FINPILOT_CACHE_MODE:-simple}"
 export JWT_SECRET="${JWT_SECRET:-finpilot-dev-secret-change-in-production-32chars}"
 export FINPILOT_JWT_SECRET="${JWT_SECRET}"
 export FINPILOT_CORS_ORIGINS="${FINPILOT_CORS_ORIGINS:-*}"
-GATEWAY_PORT="${PORT:-8080}"
+LISTEN_PORT="${PORT:-8080}"
+export SERVER_PORT="${LISTEN_PORT}"
 
-start_jar() {
-  java -XX:+UseContainerSupport -Xms32m -Xmx96m -jar "$1" > "/tmp/$(basename "$1" .jar).log" 2>&1 &
-  echo "Started $(basename "$1")"
+JAVA_SMALL=(java -XX:+UseContainerSupport -Xms24m -Xmx56m -XX:MaxMetaspaceSize=64m)
+JAVA_GATEWAY=(java -XX:+UseContainerSupport -Xms48m -Xmx160m -XX:MaxMetaspaceSize=96m)
+
+start_background() {
+  "${JAVA_SMALL[@]}" -jar "$1" > "/tmp/$(basename "$1" .jar).log" 2>&1 &
+  echo "Started $(basename "$1") pid=$!"
 }
 
-start_jar "${JAR_DIR}/user-service.jar"
-sleep 20
-for jar in portfolio-service transaction-service market-data-service risk-service order-service ai-service; do
-  start_jar "${JAR_DIR}/${jar}-0.1.0-SNAPSHOT.jar"
-  sleep 3
-done
-start_jar "${JAR_DIR}/api-gateway-0.1.0-SNAPSHOT.jar"
+start_background "${JAR_DIR}/user-service.jar"
+echo "Waiting for user-service (Flyway + DB)..."
+sleep 35
 
-echo "Waiting for gateway..."
-for i in $(seq 1 90); do
-  if wget -q -O- "http://127.0.0.1:${GATEWAY_PORT}/actuator/health" >/dev/null 2>&1; then
-    echo "FinPilot API ready on :${GATEWAY_PORT}"
-    break
-  fi
+for jar in portfolio-service transaction-service market-data-service risk-service order-service ai-service; do
+  start_background "${JAR_DIR}/${jar}-0.1.0-SNAPSHOT.jar"
   sleep 2
 done
 
-# Keep container alive following gateway logs
-tail -f /tmp/api-gateway-0.1.0-SNAPSHOT.log
+echo "Starting API gateway in foreground on port ${LISTEN_PORT}..."
+exec "${JAVA_GATEWAY[@]}" -Dserver.port="${LISTEN_PORT}" -jar "${JAR_DIR}/api-gateway-0.1.0-SNAPSHOT.jar"
