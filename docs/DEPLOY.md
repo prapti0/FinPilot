@@ -99,7 +99,9 @@ Login calls `https://render-host/api/v1/...` with CORS from gateway.
 | `*` CORS + auth fails | Wildcard blocks credentials | Use real origins, not `*` |
 | AI page empty | `FINPILOT_RENDER_START_AI=false` | Set `true` only if RAM allows (extra JVM) |
 
-**Env checklist:** `DATABASE_URL`, `SPRING_PROFILES_ACTIVE=prod`, `JWT_SECRET`, `FINPILOT_CORS_ORIGINS`, `FINPILOT_EVENTS_KAFKA_ENABLED=false`, `FINPILOT_CACHE_MODE=simple`, `FINPILOT_RENDER_START_ALL=false` (lite: login works; set `true` only on **2GB+** instances).
+**Env checklist:** `DATABASE_URL`, `SPRING_PROFILES_ACTIVE=prod`, `JWT_SECRET`, `FINPILOT_CORS_ORIGINS`, `FINPILOT_EVENTS_KAFKA_ENABLED=false`, `FINPILOT_CACHE_MODE=simple`.
+
+**Render JVM footprint:** `FINPILOT_RENDER_PROFILE=core` (default — login + portfolios + market + risk), `lite` (auth only), or `FINPILOT_RENDER_START_ALL=true` (full stack on **2GB+**). `/portfolios` and `/risk/alerts` **500** in `lite` because those JVMs are not running.
 
 **Vercel:** `VITE_API_BASE_URL=https://finpilot-7gpk.onrender.com` then **Redeploy** the frontend.
 

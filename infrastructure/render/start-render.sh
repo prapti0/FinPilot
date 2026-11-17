@@ -10,8 +10,9 @@ export FINPILOT_JWT_SECRET="${JWT_SECRET}"
 # Set on Render to your Vercel URL(s), comma-separated — do not use * with browser cookies/JWT
 export FINPILOT_CORS_ORIGINS="${FINPILOT_CORS_ORIGINS:-https://fin-pilot-sepia-nine.vercel.app}"
 export FINPILOT_RENDER_START_AI="${FINPILOT_RENDER_START_AI:-false}"
-# Starter instances cannot run 7 JVMs — default lite keeps API + login stable (upgrade + true for all services).
+# Render footprint: lite (auth) | core (dashboard: portfolio/market/risk) | full (all JVMs)
 export FINPILOT_RENDER_START_ALL="${FINPILOT_RENDER_START_ALL:-false}"
+export FINPILOT_RENDER_PROFILE="${FINPILOT_RENDER_PROFILE:-core}"
 
 # Render sets PORT=10000 (public). Only the gateway may listen on it — do NOT export SERVER_PORT globally.
 GATEWAY_PORT="${PORT:-8080}"
@@ -77,26 +78,46 @@ if ! wait_for_gateway; then
   exit 1
 fi
 
+RENDER_PROFILE="${FINPILOT_RENDER_PROFILE}"
 if [ "${FINPILOT_RENDER_START_ALL}" = "true" ]; then
+  RENDER_PROFILE="full"
+fi
+
+start_core_dashboard() {
   start_background 8082 "${JAR_DIR}/portfolio-service-0.1.0-SNAPSHOT.jar"
-  sleep 4
-  start_background 8084 "${JAR_DIR}/transaction-service-0.1.0-SNAPSHOT.jar"
   sleep 4
   start_background 8085 "${JAR_DIR}/market-data-service-0.1.0-SNAPSHOT.jar"
   sleep 4
   start_background 8086 "${JAR_DIR}/risk-service-0.1.0-SNAPSHOT.jar"
-  sleep 4
-  start_background 8083 "${JAR_DIR}/order-service-0.1.0-SNAPSHOT.jar"
-  sleep 4
-  if [ "${FINPILOT_RENDER_START_AI}" = "true" ]; then
-    start_background 8087 "${JAR_DIR}/ai-service-0.1.0-SNAPSHOT.jar"
-  else
-    echo "Skipping ai-service on Render (set FINPILOT_RENDER_START_AI=true to enable)"
-  fi
-  echo "Full stack launched on Render"
-else
-  echo "Render lite mode: gateway + user-service only (login/auth). Set FINPILOT_RENDER_START_ALL=true on a larger instance for portfolios/orders."
-fi
+  sleep 2
+}
+
+case "${RENDER_PROFILE}" in
+  full)
+    start_core_dashboard
+    start_background 8084 "${JAR_DIR}/transaction-service-0.1.0-SNAPSHOT.jar"
+    sleep 4
+    start_background 8083 "${JAR_DIR}/order-service-0.1.0-SNAPSHOT.jar"
+    sleep 4
+    if [ "${FINPILOT_RENDER_START_AI}" = "true" ]; then
+      start_background 8087 "${JAR_DIR}/ai-service-0.1.0-SNAPSHOT.jar"
+    else
+      echo "Skipping ai-service on Render (set FINPILOT_RENDER_START_AI=true to enable)"
+    fi
+    echo "Render profile=full (all business services)"
+    ;;
+  core)
+    start_core_dashboard
+    echo "Render profile=core (login + portfolios + market + risk). Orders need profile=full or FINPILOT_RENDER_START_ALL=true"
+  ;;
+  lite)
+    echo "Render profile=lite (gateway + user-service only)"
+    ;;
+  *)
+    echo "Unknown FINPILOT_RENDER_PROFILE=${RENDER_PROFILE}; using core"
+    start_core_dashboard
+    ;;
+esac
 
 echo "Holding gateway pid=${GATEWAY_PID}"
 wait "${GATEWAY_PID}"
