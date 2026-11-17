@@ -33,8 +33,9 @@ Financial rules unchanged: ledger in PostgreSQL, AI read-only, idempotent orders
 1. Push repo to GitHub.
 2. Render Dashboard → **New** → **Blueprint** → connect repo.
 3. Confirm `render.yaml` creates `finpilot-db` + `finpilot-api`.
-4. Set env **`FINPILOT_CORS_ORIGINS`** to your Vercel URL, e.g.  
-   `https://finpilot.vercel.app,https://finpilot-git-main-you.vercel.app`
+4. Set env **`FINPILOT_CORS_ORIGINS`** to your Vercel URL (exact, no trailing slash), e.g.  
+   `https://fin-pilot-sepia-nine.vercel.app`  
+   Add preview URLs comma-separated if you use branch deploys.
 5. Optional: `GEMINI_API_KEY` for live AI (else mock narratives).
 
 ### Option B — Manual Docker
